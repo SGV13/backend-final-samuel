@@ -1,5 +1,6 @@
 package co.edu.uco.backend.businesslogic.facade;
 
+import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
 import co.edu.uco.backend.dto.ReservaDTO;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public interface ReservaFacade {
 
     ReservaDTO consultarReservaPorCliente(UUID clienteId, UUID reservaId);
 
-    List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro);
+    List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException;
 
     void finalizarReserva(UUID clienteId, UUID reservaId);
 

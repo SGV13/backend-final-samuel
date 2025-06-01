@@ -1,9 +1,12 @@
 package co.edu.uco.backend.businesslogic.facade.impl;
 
+import co.edu.uco.backend.businesslogic.assembler.reserva.dto.ReservaDTOAssembler;
+import co.edu.uco.backend.businesslogic.businesslogic.domain.ReservaDomain;
 import co.edu.uco.backend.businesslogic.businesslogic.impl.ReservaBusinessLogicImpl;
 import co.edu.uco.backend.businesslogic.businesslogic.ReservaBusinessLogic;
 import co.edu.uco.backend.businesslogic.facade.ReservaFacade;
 import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
+import co.edu.uco.backend.crosscutting.exceptions.BusinessLogicBackEndException;
 import co.edu.uco.backend.data.dao.factory.DAOFactory;
 import co.edu.uco.backend.data.dao.factory.Factory;
 import co.edu.uco.backend.dto.ReservaDTO;
@@ -13,8 +16,8 @@ import java.util.UUID;
 
 public class ReservaFacadeImpl implements ReservaFacade {
 
-    private DAOFactory daoFactory;
-    private ReservaBusinessLogic reservaBusinessLogic;
+    private final DAOFactory daoFactory;
+    private final ReservaBusinessLogic reservaBusinessLogic;
 
     public ReservaFacadeImpl() throws BackEndException {
         daoFactory = DAOFactory.getFactory(Factory.POSTGRE_SQL);
@@ -24,17 +27,17 @@ public class ReservaFacadeImpl implements ReservaFacade {
 
     @Override
     public void registrarNuevaReserva(UUID clienteID, ReservaDTO reserva) {
-
+        //Sin implementar
     }
 
     @Override
     public void confirmarReserva(UUID clienteId, UUID idReserva, ReservaDTO reserva) {
-
+        //Sin implementar
     }
 
     @Override
     public void cancelarReservaPorCliente(UUID clienteId, UUID reservaId, ReservaDTO reserva) {
-
+        //Sin implementar
     }
 
     @Override
@@ -43,18 +46,32 @@ public class ReservaFacadeImpl implements ReservaFacade {
     }
 
     @Override
-    public List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) {
-        return List.of();
+    public List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException {
+        daoFactory.abrirConexion();
+        try {
+
+            ReservaDomain filtroDomain = ReservaDTOAssembler.getInstance().toDomain(filtro);
+            List<ReservaDomain> dominios = reservaBusinessLogic.listarReservasPorCliente(clienteId,filtroDomain);
+            return ReservaDTOAssembler.getInstance().toDTOs(dominios);
+        } catch (BackEndException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            var mensajeUsuario = "Se ha presentado un problema inesperado al consultar todos los clientes";
+            var mensajeTecnico = "Excepción inesperada listando todas los clientes";
+            throw BusinessLogicBackEndException.reportar(mensajeUsuario, mensajeTecnico, ex);
+        } finally {
+            daoFactory.cerrarConexion();
+        }
     }
 
     @Override
     public void finalizarReserva(UUID clienteId, UUID reservaId) {
-
+        //Sin implementar
     }
 
     @Override
     public void cancelarReservaPorOrganizacion(UUID orgId, UUID reservaId) {
-
+        //Sin implementar
     }
 
     @Override

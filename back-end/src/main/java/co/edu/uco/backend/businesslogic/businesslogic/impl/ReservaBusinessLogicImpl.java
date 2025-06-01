@@ -18,38 +18,38 @@ public class ReservaBusinessLogicImpl implements ReservaBusinessLogic {
 
     @Override
     public void registrarNuevaReserva(UUID clienteID, ReservaDomain reserva) throws BackEndException {
+        // Validar cliente
         ReservaEntity reservaEntity = null;
-        //TODO: Validar cliente
         factory.getReservaDAO().crear(reservaEntity);
     }
 
     @Override
     public void confirmarReserva(UUID clienteId, UUID idReserva, ReservaDomain reserva) throws BackEndException {
+        //Validar cliente
         ReservaEntity reservaEntity = null;
-        //TODO: Validar cliente
         factory.getReservaDAO().modificar(idReserva,reservaEntity);
     }
 
 
     @Override
     public void cancelarReservaPorCliente(UUID clienteId, UUID reservaId, ReservaDomain reserva) throws BackEndException {
+        //Validar cliente
         ReservaEntity reservaEntity = null;
-        //TODO: Validar cliente
         factory.getReservaDAO().modificar(reservaId,reservaEntity);
     }
 
     @Override
     public ReservaDomain consultarReservaPorCliente(UUID clienteId, UUID reservaId) throws BackEndException {
+        //Validar cliente
         ReservaEntity reservaEntity = null;
-        //TODO: Validar cliente
         factory.getReservaDAO().consultarPorId(reservaId);
         return null;
     }
 
     @Override
     public List<ReservaDomain> listarReservasPorCliente(UUID clienteId, ReservaDomain filtro) throws BackEndException {
+        //Validar cliente
         ReservaEntity reservaFilter = null;
-        //TODO: Validar cliente
         List<ReservaEntity> reservaEntities = factory.getReservaDAO().consultar(reservaFilter);
         List<ReservaDomain> datosARetornar = null;
         return datosARetornar;
