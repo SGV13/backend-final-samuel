@@ -29,7 +29,7 @@ public class ReservaController {
     @PostMapping
     public ResponseEntity<String> registrar(
             @PathVariable UUID clienteId,
-            @RequestBody ReservaDTO reserva) throws BackEndException {
+            @RequestBody ReservaDTO reserva) {
         reservaFacade.registrarNuevaReserva(clienteId, reserva);
         return new ResponseEntity<>("Reserva registrada exitosamente.", HttpStatus.CREATED);
     }
@@ -38,7 +38,7 @@ public class ReservaController {
     public ResponseEntity<String> confirmar(
             @PathVariable UUID clienteId,
             @PathVariable UUID reservaId,
-            @RequestBody ReservaDTO reserva) throws BackEndException {
+            @RequestBody ReservaDTO reserva){
         reservaFacade.confirmarReserva(clienteId, reservaId, reserva);
         return new ResponseEntity<>("Reserva confirmada exitosamente.", HttpStatus.OK);
     }
@@ -47,7 +47,7 @@ public class ReservaController {
     public ResponseEntity<String> cancelarCliente(
             @PathVariable UUID clienteId,
             @PathVariable UUID reservaId,
-            @RequestBody ReservaDTO reserva) throws BackEndException {
+            @RequestBody ReservaDTO reserva) {
         reservaFacade.cancelarReservaPorCliente(clienteId, reservaId, reserva);
         return new ResponseEntity<>("Reserva cancelada por el cliente.", HttpStatus.OK);
     }
@@ -55,23 +55,23 @@ public class ReservaController {
     @GetMapping("/{reservaId}")
     public ResponseEntity<ReservaDTO> consultarPorId(
             @PathVariable UUID clienteId,
-            @PathVariable UUID reservaId) throws BackEndException {
-        var reserva = reservaFacade.consultarReservaPorCliente(clienteId, reservaId);
-        return new ResponseEntity<>(reserva, HttpStatus.OK);
+            @PathVariable UUID reservaId){
+        var reservaDto = reservaFacade.consultarReservaPorCliente(clienteId, reservaId);
+        return new ResponseEntity<>(reservaDto, HttpStatus.OK);
     }
 
     @GetMapping
     public ResponseEntity<List<ReservaDTO>> listar(
-            @PathVariable UUID clienteId,
-            @RequestBody(required = false) ReservaDTO filtro) throws BackEndException {
-        var lista = reservaFacade.listarReservasPorCliente(clienteId, filtro != null ? filtro : new ReservaDTO());
+            @PathVariable UUID clienteId) throws BackEndException {
+        // Usamos un DTO vacío como filtro por defecto
+        var lista = reservaFacade.listarReservasPorCliente(clienteId, new ReservaDTO());
         return new ResponseEntity<>(lista, HttpStatus.OK);
     }
 
     @PutMapping("/{reservaId}/finalizar")
     public ResponseEntity<String> finalizar(
             @PathVariable UUID clienteId,
-            @PathVariable UUID reservaId) throws BackEndException {
+            @PathVariable UUID reservaId) {
         reservaFacade.finalizarReserva(clienteId, reservaId);
         return new ResponseEntity<>("Reserva finalizada exitosamente.", HttpStatus.OK);
     }

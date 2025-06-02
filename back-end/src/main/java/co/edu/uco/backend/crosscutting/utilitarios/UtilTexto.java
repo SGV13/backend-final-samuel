@@ -6,7 +6,7 @@ public final class UtilTexto {
 
     private static final String PATRON_SOLO_LETRAS_ESPACIOS             = "^[a-zA-ZáÁéÉíÍóÓúÚñÑ ]+$";
     private static final String PATRON_ALFANUMERICO_ESPACIOS             = "^[a-zA-ZáÁéÉíÍóÓúÚñÑ0-9 ]+$";
-    private static final String PATRON_ALFANUMERICO_ESPACIOS_ESPECIALES  = "^[a-zA-ZáÁéÉíÍóÓúÚñÑ0-9 \\-\\_\\.\\,\\@]+$";
+    private static final String PATRON_ALFANUMERICO_ESPACIOS_ESPECIALES  = "^[\\p{L}\\p{N}\\p{Punct}\\s]+$";
     private static final String PATRON_SOLO_NUMEROS = "^[0-9]+$";
     private static final String PATRON_PREFIJO_TELEFONO                  = "^\\+?[0-9]+$";
     public final static String VACIO = "";

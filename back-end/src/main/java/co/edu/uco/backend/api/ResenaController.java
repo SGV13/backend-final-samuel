@@ -55,15 +55,15 @@ public class ResenaController {
     public ResponseEntity<ResenaDTO> consultarPorId(
             @PathVariable UUID reservaId,
             @PathVariable UUID resenaId) throws BackEndException {
-        var resena = resenaFacade.consultarResenaPorReserva(reservaId, resenaId);
-        return new ResponseEntity<>(resena, HttpStatus.OK);
+        var resenaDto = resenaFacade.consultarResenaPorReserva(reservaId, resenaId);
+        return new ResponseEntity<>(resenaDto, HttpStatus.OK);
     }
 
     @GetMapping
     public ResponseEntity<List<ResenaDTO>> listar(
-            @PathVariable UUID reservaId,
-            @RequestBody(required = false) ResenaDTO filtro) throws BackEndException {
-        var lista = resenaFacade.consultarResenas(reservaId, filtro != null ? filtro : new ResenaDTO());
+            @PathVariable UUID reservaId) throws BackEndException {
+        // Usamos un DTO vacío como filtro por defecto
+        var lista = resenaFacade.consultarResenas(reservaId, new ResenaDTO());
         return new ResponseEntity<>(lista, HttpStatus.OK);
     }
 }

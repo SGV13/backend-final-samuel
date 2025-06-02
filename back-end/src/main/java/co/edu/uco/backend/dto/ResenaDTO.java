@@ -20,9 +20,9 @@ public final class ResenaDTO {
     public ResenaDTO() {
         setId(UtilUUID.obtenerValorDefecto());
         setReserva(ReservaDTO.obtenerValorDefecto());
-        setCalificacion(UtilEntero.obtenerValorDefecto(0));
+        setCalificacion(UtilEntero.getInstance().obtenerValorDefecto());
         setComentario(UtilTexto.getInstance().obtenerValorDefecto());
-        setFecha(UtilFecha.obtenerValorDefecto((LocalDate) null));
+        setFecha(UtilFecha.obtenerValorDefecto());
     }
 
     public ResenaDTO(final UUID id) {
@@ -36,6 +36,7 @@ public final class ResenaDTO {
             final int calificacion,
             final String comentario,
             final LocalDate fecha
+
     ) {
         setId(id);
         setReserva(reserva);
@@ -68,9 +69,6 @@ public final class ResenaDTO {
         return comentario;
     }
 
-    public LocalDate getFecha() {
-        return fecha;
-    }
 
     public ResenaDTO setId(final UUID id) {
         this.id = UtilUUID.obtenerValorDefecto(id);
@@ -83,7 +81,7 @@ public final class ResenaDTO {
     }
 
     public ResenaDTO setCalificacion(final int calificacion) {
-        this.calificacion = UtilEntero.obtenerValorDefecto(calificacion);
+        this.calificacion = UtilEntero.getInstance().obtenerValorDefecto(calificacion);
         return this;
     }
 
@@ -92,8 +90,11 @@ public final class ResenaDTO {
         return this;
     }
 
-    public ResenaDTO setFecha(final LocalDate fecha) {
+    public LocalDate getFecha() {
+        return fecha;
+    }
+
+    public void setFecha(LocalDate fecha) {
         this.fecha = UtilFecha.obtenerValorDefecto(fecha);
-        return this;
     }
 }

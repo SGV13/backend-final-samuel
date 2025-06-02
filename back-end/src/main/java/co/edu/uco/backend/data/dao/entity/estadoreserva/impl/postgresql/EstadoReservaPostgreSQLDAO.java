@@ -2,11 +2,13 @@ package co.edu.uco.backend.data.dao.entity.estadoreserva.impl.postgresql;
 
 import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
 import co.edu.uco.backend.crosscutting.exceptions.DataBackEndException;
+import co.edu.uco.backend.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.backend.data.dao.entity.estadoreserva.EstadoReservaDAO;
-import co.edu.uco.backend.entity.CanchaEntity;
 import co.edu.uco.backend.entity.EstadoReservaEntity;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
@@ -70,8 +72,39 @@ public class EstadoReservaPostgreSQLDAO implements EstadoReservaDAO {
     }
 
     @Override
-    public EstadoReservaEntity consultarPorId(UUID id) {
-        return null;
+    public EstadoReservaEntity consultarPorId(UUID id) throws BackEndException {
+        var sql = new StringBuilder();
+        sql.append("SELECT codigoestadores, nombre ")
+                .append("FROM doodb.estadoreserva ")
+                .append("WHERE codigoestadores = ?");
+
+        var estadoEntity = new EstadoReservaEntity();
+
+        try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
+            ps.setObject(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // 1) Obtener el UUID
+                    UUID estadoUUID = UtilUUID.convertirAUUID(rs.getString("codigoestadores"));
+                    estadoEntity.setId(estadoUUID);
+
+                    // 2) Obtener el nombre
+                    String nombre = rs.getString("nombre");
+                    estadoEntity.setNombre(nombre);
+                }
+            }
+        } catch (SQLException exception) {
+            var mensajeTecnico   = "Se presentó una SQLException tratando de consultar el estado de reserva por ID en la base de datos.";
+            var mensajeUsuario   = "No fue posible consultar el estado de reserva en este momento.";
+            throw DataBackEndException.reportar(mensajeUsuario, mensajeTecnico, exception);
+        } catch (Exception exception) {
+            var mensajeTecnico   = "Se presentó una excepción NO CONTROLADA tratando de consultar el estado de reserva por ID.";
+            var mensajeUsuario   = "Ha ocurrido un problema inesperado al consultar el estado de reserva.";
+            throw DataBackEndException.reportar(mensajeUsuario, mensajeTecnico, exception);
+        }
+
+        return estadoEntity;
     }
 
 

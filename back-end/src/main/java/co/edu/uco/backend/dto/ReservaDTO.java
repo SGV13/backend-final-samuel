@@ -3,11 +3,13 @@ package co.edu.uco.backend.dto;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilObjeto;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilFecha;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilUUID;
+import com.fasterxml.jackson.annotation.JsonFilter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
+@JsonFilter("reservaFilter")
 public final class ReservaDTO {
 
     private UUID id;

@@ -1,5 +1,6 @@
 package co.edu.uco.backend.businesslogic.businesslogic.impl;
 
+import co.edu.uco.backend.businesslogic.assembler.estadoreserva.entity.EstadoReservaEntityAssembler;
 import co.edu.uco.backend.businesslogic.businesslogic.EstadoReservaBusinessLogic;
 import co.edu.uco.backend.businesslogic.businesslogic.domain.EstadoReservaDomain;
 import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
@@ -37,9 +38,8 @@ public class EstadoReservaBusinessLogicImpl implements EstadoReservaBusinessLogi
 
     @Override
     public EstadoReservaDomain consultarEstadoReservaPorId(UUID estadoReservaId) throws BackEndException {
-        EstadoReservaEntity estadoReservaEntity = null;
-        factory.getEstadoReservaDAO().consultarPorId(estadoReservaId);
-        return null;
+        var entity = factory.getEstadoReservaDAO().consultarPorId(estadoReservaId);
+        return EstadoReservaEntityAssembler.getInstance().toDomain(entity);
     }
 
     @Override

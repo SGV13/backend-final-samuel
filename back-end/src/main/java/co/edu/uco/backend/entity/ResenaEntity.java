@@ -16,7 +16,7 @@ public final class ResenaEntity {
     public ResenaEntity() {
         setId(UtilUUID.obtenerValorDefecto());
         setReserva(ReservaEntity.obtenerReservaDefecto());
-        setCalificacion(UtilEntero.obtenerValorDefecto(null));
+        setCalificacion(UtilEntero.getInstance().obtenerValorDefecto());
         setComentario(UtilTexto.getInstance().obtenerValorDefecto());
         setFecha(UtilFecha.obtenerValorDefecto((LocalDate) null));
     }
@@ -64,7 +64,7 @@ public final class ResenaEntity {
     }
 
     public void setCalificacion(final int calificacion) {
-        this.calificacion = UtilEntero.obtenerValorDefecto(calificacion);
+        this.calificacion = UtilEntero.getInstance().obtenerValorDefecto(calificacion);
     }
 
     public String getComentario() {

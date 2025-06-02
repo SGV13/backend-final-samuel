@@ -16,9 +16,9 @@ public final class ResenaDomain {
     ResenaDomain() {
         setId(UtilUUID.obtenerValorDefecto());
         setReserva(ReservaDomain.obtenerReservaDefecto());
-        setCalificacion(UtilEntero.obtenerValorDefecto(null));
+        setCalificacion(UtilEntero.getInstance().obtenerValorDefecto());
         setComentario(UtilTexto.getInstance().obtenerValorDefecto());
-        setFecha(UtilFecha.obtenerValorDefecto((LocalDate) null));
+        this.fecha = null;
     }
 
     public ResenaDomain(final UUID id) {
@@ -34,6 +34,7 @@ public final class ResenaDomain {
         setComentario(comentario);
         setFecha(fecha);
     }
+
 
     static ResenaDomain obtenerResenaDefecto() {
         return new ResenaDomain();
@@ -64,7 +65,7 @@ public final class ResenaDomain {
     }
 
     private void setCalificacion(final int calificacion) {
-        this.calificacion = UtilEntero.obtenerValorDefecto(calificacion);
+        this.calificacion = UtilEntero.getInstance().obtenerValorDefecto(calificacion);
     }
 
     public String getComentario() {
@@ -80,6 +81,6 @@ public final class ResenaDomain {
     }
 
     private void setFecha(final LocalDate fecha) {
-        this.fecha = UtilFecha.obtenerValorDefecto(fecha);
+        this.fecha = fecha;
     }
 }

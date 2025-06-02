@@ -2,7 +2,6 @@ package co.edu.uco.backend.entity;
 
 import co.edu.uco.backend.crosscutting.utilitarios.UtilFecha;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilObjeto;
-import co.edu.uco.backend.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilUUID;
 
 import java.time.LocalDate;
