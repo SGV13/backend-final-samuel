@@ -4,6 +4,8 @@ import co.edu.uco.backend.crosscutting.exceptions.DataBackEndException;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.backend.data.dao.entity.cancha.CanchaDAO;
 import co.edu.uco.backend.entity.CanchaEntity;
+import co.edu.uco.backend.entity.OrganizacionDeportivaEntity;
+import co.edu.uco.backend.entity.SuperficieEntity;
 import co.edu.uco.backend.entity.TipoCanchaEntity;
 
 import java.sql.Connection;
@@ -54,38 +56,94 @@ public class CanchaPostgreSQLDAO implements CanchaDAO {
     @Override
     public CanchaEntity consultarPorId(UUID id) throws BackEndException {
 
-        var CanchaEntityRetorno = new CanchaEntity();
-        var sentenciaSQL = new StringBuilder();
+        var canchaRetorno = new CanchaEntity();
+        var sql = new StringBuilder();
 
+        // Corregimos la lista de columnas según el esquema:
+        sql.append(
+                "SELECT "
+                        +   "codigocancha, "
+                        +   "nombre, "
+                        +   "costoporhora, "
+                        +   "iluminacion, "
+                        +   "cubierta, "
+                        +   "codigotipocancha, "
+                        +   "superficieid, "
+                        +   "codigoorganizacion "
+                        + "FROM doodb.cancha "
+                        + "WHERE codigocancha = ?"
+        );
 
-        sentenciaSQL.append("SELECT codigocancha, nombreCancha, tipo, dimensiones, superficie, costoHora, ubicacion, organizacion, iluminacion, cubierta, HorariosDisponibles, HorariosEspeciales FROM cancha WHERE codigocancha = ?");
-        try (var sentenciaPreparada = connection.prepareStatement(sentenciaSQL.toString())){
-            sentenciaPreparada.setObject(1,id);
+        try (var ps = connection.prepareStatement(sql.toString())) {
+            ps.setObject(1, id);
 
-            try(var cursorResultados = sentenciaPreparada.executeQuery()){
+            try (var rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // 1) ID de la cancha
+                    UUID canchaUUID = UtilUUID.convertirAUUID(rs.getString("codigocancha"));
+                    canchaRetorno.setId(canchaUUID);
 
-                if(cursorResultados.next()){
-                    CanchaEntityRetorno.setId(UtilUUID.convertirAUUID(cursorResultados.getString("codigocancha")));
-                    CanchaEntityRetorno.setNombreCancha(cursorResultados.getString("nombreCancha"));
-                    
+                    // 2) Nombre
+                    String nombre = rs.getString("nombre");
+                    canchaRetorno.setNombreCancha(nombre);
 
+                    // 3) Costo por hora
+                    double costoHora = rs.getDouble("costoporhora");
+                    canchaRetorno.setCostoHora(costoHora);
 
+                    // 4) Iluminación
+                    boolean iluminacion = rs.getBoolean("iluminacion");
+                    canchaRetorno.setIluminacion(iluminacion);
+
+                    // 5) Cubierta
+                    boolean cubierta = rs.getBoolean("cubierta");
+                    canchaRetorno.setCubierta(cubierta);
+
+                    // 6) FK: codigotipocancha (solo asignamos el ID, si quieres cargar la entidad completa haz otro SELECT)
+                    String tipoIdStr = rs.getString("codigotipocancha");
+                    if (tipoIdStr != null) {
+                        UUID tipoUUID = UtilUUID.convertirAUUID(tipoIdStr);
+                        TipoCanchaEntity tipo = new TipoCanchaEntity();
+                        tipo.setId(tipoUUID);
+                        canchaRetorno.setTipo(tipo);
+                    } else {
+                        canchaRetorno.setTipo(null);
+                    }
+
+                    // 7) FK: superficieid
+                    String superficieIdStr = rs.getString("superficieid");
+                    if (superficieIdStr != null) {
+                        UUID superficieUUID = UtilUUID.convertirAUUID(superficieIdStr);
+                        SuperficieEntity superficie = new SuperficieEntity();
+                        superficie.setId(superficieUUID);
+                        canchaRetorno.setSuperficie(superficie);
+                    } else {
+                        canchaRetorno.setSuperficie(null);
+                    }
+
+                    // 8) FK: codigoorganizacion
+                    String orgIdStr = rs.getString("codigoorganizacion");
+                    if (orgIdStr != null) {
+                        UUID orgUUID = UtilUUID.convertirAUUID(orgIdStr);
+                        OrganizacionDeportivaEntity org = new OrganizacionDeportivaEntity();
+                        org.setId(orgUUID);
+                        canchaRetorno.setOrganizacion(org);
+                    } else {
+                        canchaRetorno.setOrganizacion(null);
+                    }
                 }
             }
-
         } catch (SQLException exception) {
-            var mensajeTecnico = "Se presentó una SQLException tratando de consultar la informacion de la cancha con el ID deseado , para más detalles revise el log de errores";
-            var mensajeUsuario = "Se ha presentado un problema tratando de consultar la informacion de la cancha con el ID deseado";
-
+            var mensajeTecnico = "Se presentó una SQLException tratando de consultar la información de la cancha con el ID deseado. Para más detalles, revise el log de errores.";
+            var mensajeUsuario = "No se pudo consultar la información de la cancha en este momento.";
             throw DataBackEndException.reportar(mensajeUsuario, mensajeTecnico, exception);
-
-        }catch (Exception exception) {
-            var mensajeTecnico = "Se presentó una excepción de tipo SQLException NO CONTROLADA tratando de consultar la infromacion de la cancha con el ID deseado en la base de datos, para más detalles revise el log de errores";
-            var mensajeUsuario = "Se ha presentado un problema inesperado tratando de consultar informacion de la cancha con el ID deseado";
-
+        } catch (Exception exception) {
+            var mensajeTecnico = "Excepción NO CONTROLADA al consultar la información de la cancha con el ID deseado.";
+            var mensajeUsuario = "Ha ocurrido un problema inesperado al consultar la información de la cancha.";
             throw DataBackEndException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
-        return CanchaEntityRetorno;
+
+        return canchaRetorno;
     }
 
     @Override

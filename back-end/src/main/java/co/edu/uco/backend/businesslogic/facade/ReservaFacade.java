@@ -4,6 +4,7 @@ import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
 import co.edu.uco.backend.dto.ReservaDTO;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface ReservaFacade {
@@ -16,7 +17,7 @@ public interface ReservaFacade {
 
     ReservaDTO consultarReservaPorCliente(UUID clienteId, UUID reservaId);
 
-    List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException;
+    List<Map<String,Object>> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException;
 
     void finalizarReserva(UUID clienteId, UUID reservaId);
 

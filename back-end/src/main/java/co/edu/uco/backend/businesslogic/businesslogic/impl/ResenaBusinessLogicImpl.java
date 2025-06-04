@@ -7,16 +7,19 @@ import co.edu.uco.backend.businesslogic.businesslogic.domain.ResenaDomain;
 import co.edu.uco.backend.businesslogic.businesslogic.domain.ReservaDomain;
 import co.edu.uco.backend.crosscutting.exceptions.BackEndException;
 import co.edu.uco.backend.crosscutting.exceptions.BusinessLogicBackEndException;
+import co.edu.uco.backend.crosscutting.utilitarios.UtilEntero;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.backend.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.backend.data.dao.factory.DAOFactory;
 import co.edu.uco.backend.entity.EstadoReservaEntity;
 import co.edu.uco.backend.entity.ResenaEntity;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
@@ -161,6 +164,16 @@ public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
     }
 
     private void validarIntegridadCalificacion(int calificacion) throws BackEndException {
+
+        // Convertimos el entero a string (por ejemplo, 2 → "2"; -3 → "-3"; 0 → "0")
+        String calStr = UtilEntero.getInstance().convertirAString(calificacion);
+        // Si esa cadena NO es solo dígitos (p.ej. "-3" o "2.5" o "abc"), la rechazamos
+        if (!UtilTexto.getInstance().contieneSoloNumeros(calStr)) {
+            throw BusinessLogicBackEndException.reportar(
+                    "Error de formato: La calificación solo puede contener números enteros (sin decimales ni texto). Se recibió: "
+                            + calStr
+            );
+        }
         // 1. Obligatorio: la calificación debe estar presente
         if (calificacion == 0) {
             throw BusinessLogicBackEndException.reportar(
@@ -242,18 +255,33 @@ public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
         int calificacion = resena.getCalificacion();
         if (calificacion <= 2) {
             String comentario = resena.getComentario().trim();
+
             // a) longitud mínima 50
             if (comentario.length() < 50) {
                 throw BusinessLogicBackEndException.reportar(
-                        "POL-REV-001: Con calificación ≤ 2, el comentario debe tener al menos 50 caracteres.");
+                        "POL-REV-001: Con calificación ≤ 2, el comentario debe tener al menos 50 caracteres."
+                );
             }
-            // b) al menos una palabra negativa
-            List<String> negativos = List.of("mal", "deficiente", "sucio", "inadecuado", "cancelado");
+
+            // b) al menos una palabra negativa (normalizando tildes)
+            String textoSinAcentos = Normalizer
+                    .normalize(comentario.toLowerCase(), Normalizer.Form.NFD)
+                    .replaceAll("\\p{M}", "");
+
+            List<String> negativos = List.of(
+                    "mal", "deficiente", "sucio", "inadecuado", "cancelado",
+                    "pesimo", "horrible", "desastroso", "negligente", "incompetente",
+                    "lamentable", "pobre", "terrible", "decepcionante", "frustrante"
+            );
+
             boolean contieneAspectoNegativo = negativos.stream()
-                    .anyMatch(p -> comentario.toLowerCase().contains(p));
+                    .anyMatch(p -> textoSinAcentos.contains(p));
+
             if (!contieneAspectoNegativo) {
                 throw BusinessLogicBackEndException.reportar(
-                        "POL-REV-001: Con calificación ≤ 2, debes mencionar al menos un aspecto negativo (ej.: “mal”, “deficiente”, etc.).");
+                        "POL-REV-001: Con calificación ≤ 2, debes mencionar al menos un aspecto negativo "
+                                + "(ej.: “mal”, “deficiente”, “pésimo”, “horrible”, etc.)."
+                );
             }
         }
     }
@@ -263,18 +291,39 @@ public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
      * El comentario no puede contener URLs (“http://”, “https://”, “www.”) ni etiquetas HTML (<a>, <script>, etc.).
      */
     private void validacionPoliticaNro2(ResenaDomain resena) throws BackEndException {
-        String textoLower = resena.getComentario().toLowerCase();
-        // a) Detectar URLs muy simples
-        if (textoLower.contains("http://") || textoLower.contains("https://") || textoLower.contains("www.")) {
+        String comentario = resena.getComentario();
+        String textoLower = comentario.toLowerCase();
+
+        // 1) Detectar URLs con protocolo: http:// ó https://
+        Pattern urlProtocolPattern = Pattern.compile("(https?://\\S+)");
+        if (urlProtocolPattern.matcher(textoLower).find()) {
             throw BusinessLogicBackEndException.reportar(
-                    "POL-REV-002: El comentario no puede contener URLs.");
+                    "POL-REV-002: El comentario no puede contener URLs con protocolo (http:// o https://)."
+            );
         }
-        // b) Detectar etiquetas HTML (<...>)
-        Pattern htmlTagPattern = Pattern.compile("<\\s*\\/?\\s*[a-z]+\\s*[^>]*>");
-        Matcher matcher = htmlTagPattern.matcher(textoLower);
-        if (matcher.find()) {
+
+        // 2) Detectar URLs tipo "www."
+        Pattern urlWwwPattern = Pattern.compile("(www\\.\\S+)");
+        if (urlWwwPattern.matcher(textoLower).find()) {
             throw BusinessLogicBackEndException.reportar(
-                    "POL-REV-002: El comentario no puede contener etiquetas HTML.");
+                    "POL-REV-002: El comentario no puede contener URLs que empiecen con 'www.'."
+            );
+        }
+
+        // 3) Detectar menciones a dominios sin protocolo: ejemplo.com, ejemplo.net, etc.
+        Pattern urlSimplePattern = Pattern.compile("\\b\\w+\\.(com|net|org|info|io|es|co)(/[^\\s]*)?\\b");
+        if (urlSimplePattern.matcher(textoLower).find()) {
+            throw BusinessLogicBackEndException.reportar(
+                    "POL-REV-002: El comentario no puede contener referencias a dominios (.com, .net, .org, etc.)."
+            );
+        }
+
+        // 4) Bloquear cualquier etiqueta HTML de la forma <…>
+        Pattern htmlTagPattern = Pattern.compile("<[^>]+>");
+        if (htmlTagPattern.matcher(comentario).find()) {
+            throw BusinessLogicBackEndException.reportar(
+                    "POL-REV-002: El comentario no puede contener etiquetas HTML (p.ej. <a>, <script>, etc.)."
+            );
         }
     }
 
@@ -283,15 +332,25 @@ public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
      * El comentario no puede contener palabras ofensivas (“imbécil”, “estúpido”, “mierda”, etc.).
      */
     private void validacionPoliticaNro3(ResenaDomain resena) throws BackEndException {
-        String textoLower = resena.getComentario().toLowerCase();
-        List<String> palabrasProhibidas = List.of(
-                "imbécil", "estúpido", "idiota", "basura", "mierda", "puta"
-        );
+        String comentario = resena.getComentario().toLowerCase();
+
+        // Normalizar para quitar tildes/acentos
+        String comentarioSinAcentos = Normalizer
+                .normalize(comentario, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        // Lista ampliada de palabras prohibidas (todas sin tildes, minúsculas)
+        List<String> palabrasProhibidas = new ArrayList<>(Arrays.asList(
+                "imbecil", "estupido", "idiota", "basura", "mierda", "puta",
+                "gilipollas", "pendejo", "tarado", "cabron", "mierdas",
+                "malparido", "malparida", "zorra", "zorras"
+        ));
+
         for (String palabra : palabrasProhibidas) {
-            if (textoLower.contains(palabra)) {
+            if (comentarioSinAcentos.contains(palabra)) {
                 throw BusinessLogicBackEndException.reportar(
-                        "POL-REV-003: El comentario contiene palabras ofensivas. " +
-                                "Por favor, mantén un lenguaje respetuoso.");
+                        "POL-REV-003: El comentario contiene palabras ofensivas. Por favor, mantén un lenguaje respetuoso."
+                );
             }
         }
     }
@@ -332,7 +391,12 @@ public class ResenaBusinessLogicImpl implements ResenaBusinessLogic {
 
     }
 
-    private LocalDate configurarFechaALaActual(LocalDate fecha) {
-        return (fecha == null) ? LocalDate.now() : fecha;
+    private LocalDate configurarFechaALaActual(LocalDate fecha) throws BackEndException {
+        if (fecha != null) {
+            throw BusinessLogicBackEndException.reportar(
+                    "No puedes proporcionar la fecha de la reseña; se asigna automáticamente."
+            );
+        }
+        return LocalDate.now();
     }
 }

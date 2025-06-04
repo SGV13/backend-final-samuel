@@ -95,10 +95,16 @@ public class ReservaPostgreSQLDAO implements ReservaDAO {
         var sql = new StringBuilder();
         sql.append(
                 "SELECT "
-                        +   "codigoreserva, codigocliente, codigocancha, "
-                        +   "fechareserva, fechausocancha, horainicio, horafin, codigoestadores "
-                        + "FROM doodb.reserva "
-                        + "WHERE codigoreserva = ?"
+                        +   "r.codigoreserva, "
+                        +   "r.codigocliente, c.nombre AS cliente_nombre, "
+                        +   "r.codigocancha, ch.nombre AS cancha_nombre, "
+                        +   "r.fechareserva, r.fechausocancha, r.horainicio, r.horafin, "
+                        +   "r.codigoestadores, er.nombre AS estado_nombre "
+                        + "FROM doodb.reserva r "
+                        + "LEFT JOIN doodb.cliente c      ON r.codigocliente   = c.codigocliente "
+                        + "LEFT JOIN doodb.cancha ch       ON r.codigocancha    = ch.codigocancha "
+                        + "LEFT JOIN doodb.estadoreserva er ON r.codigoestadores = er.codigoestadores "
+                        + "WHERE r.codigoreserva = ?"
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
@@ -197,66 +203,94 @@ public class ReservaPostgreSQLDAO implements ReservaDAO {
         var sql = new StringBuilder();
         sql.append(
                 "SELECT "
-                        +   "codigoreserva, codigocliente, codigocancha, "
-                        +   "fechareserva, fechausocancha, horainicio, horafin, codigoestadores "
-                        + "FROM doodb.reserva "
-                        + "WHERE codigocliente = ?"
+                        +   "r.codigoreserva, "
+                        +   "r.codigocliente, "
+                        +   "c.nombre            AS cliente_nombre, "
+                        +   "r.codigocancha, "
+                        +   "ch.nombre           AS cancha_nombre, "
+                        +   "r.fechareserva, "
+                        +   "r.fechausocancha, "
+                        +   "r.horainicio, "
+                        +   "r.horafin, "
+                        +   "r.codigoestadores, "
+                        +   "er.nombre           AS estado_nombre "
+                        + "FROM doodb.reserva r "
+                        + "LEFT JOIN doodb.cliente c       ON r.codigocliente   = c.codigocliente "
+                        + "LEFT JOIN doodb.cancha ch        ON r.codigocancha    = ch.codigocancha "
+                        + "LEFT JOIN doodb.estadoreserva er ON r.codigoestadores = er.codigoestadores "
+                        + "WHERE r.codigocliente = ?"
         );
 
         try (PreparedStatement ps = connection.prepareStatement(sql.toString())) {
-            // 1) Asignar el parámetro del WHERE
             ps.setObject(1, clienteId);
 
             try (ResultSet rs = ps.executeQuery()) {
-                // 2) Para cada fila, creamos un objeto ReservaEntity y lo poblamos
                 while (rs.next()) {
                     var entity = new ReservaEntity();
 
-                    // a) ID de la reserva
+                    // 1) codigoreserva
                     UUID reservaUUID = UtilUUID.convertirAUUID(rs.getString("codigoreserva"));
                     entity.setId(reservaUUID);
 
-                    // b) Cliente
+                    // 2) Cliente (ID + nombre, si existe)
                     UUID clienteUUID = UtilUUID.convertirAUUID(rs.getString("codigocliente"));
                     ClienteEntity cliente = new ClienteEntity();
                     cliente.setId(clienteUUID);
+                    String nombreCliente = rs.getString("cliente_nombre");
+                    if (nombreCliente != null) {
+                        cliente.setNombre(nombreCliente);
+                    }
                     entity.setCliente(cliente);
 
-                    // c) Cancha
-                    UUID canchaUUID = UtilUUID.convertirAUUID(rs.getString("codigocancha"));
-                    CanchaEntity cancha = new CanchaEntity();
-                    cancha.setId(canchaUUID);
-                    entity.setCancha(cancha);
+                    // 3) Cancha (ID + nombre, si existe)
+                    String canchaIdStr = rs.getString("codigocancha");
+                    if (canchaIdStr != null) {
+                        UUID canchaUUID = UtilUUID.convertirAUUID(canchaIdStr);
+                        CanchaEntity cancha = new CanchaEntity();
+                        cancha.setId(canchaUUID);
+                        String nombreCancha = rs.getString("cancha_nombre");
+                        if (nombreCancha != null) {
+                            cancha.setNombreCancha(nombreCancha);
+                        }
+                        entity.setCancha(cancha);
+                    } else {
+                        // Si no hay canchas asociadas (codigocancha = NULL), podemos
+                        // dejar el campo `cancha` en la entidad vacío o null,
+                        // según cómo quieras manejarlo en la capa superior.
+                        entity.setCancha(null);
+                    }
 
-                    // d) fechaReserva
-                    LocalDate fechaRes = rs.getObject("fechareserva", LocalDate.class);
+                    // 4) Fechas y horas (estos campos en tu DB no eran NULL)
+                    LocalDate fechaRes  = rs.getObject("fechareserva", LocalDate.class);
+                    LocalDate fechaUso  = rs.getObject("fechausocancha", LocalDate.class);
+                    LocalTime hIni      = rs.getObject("horainicio", LocalTime.class);
+                    LocalTime hFin      = rs.getObject("horafin", LocalTime.class);
                     entity.setFechaReserva(fechaRes);
-
-                    // e) fechaUsoCancha
-                    LocalDate fechaUso = rs.getObject("fechausocancha", LocalDate.class);
                     entity.setFechaUsoCancha(fechaUso);
-
-                    // f) horaInicio
-                    LocalTime hIni = rs.getObject("horainicio", LocalTime.class);
                     entity.setHoraInicio(hIni);
-
-                    // g) horaFin
-                    LocalTime hFin = rs.getObject("horafin", LocalTime.class);
                     entity.setHoraFin(hFin);
 
-                    // h) estadoReserva
-                    UUID estadoUUID = UtilUUID.convertirAUUID(rs.getString("codigoestadores"));
-                    EstadoReservaEntity estado = new EstadoReservaEntity();
-                    estado.setId(estadoUUID);
-                    entity.setEstado(estado);
+                    // 5) EstadoReserva (ID + nombre, si existe)
+                    String estadoIdStr = rs.getString("codigoestadores");
+                    if (estadoIdStr != null) {
+                        UUID estadoUUID = UtilUUID.convertirAUUID(estadoIdStr);
+                        EstadoReservaEntity estado = new EstadoReservaEntity();
+                        estado.setId(estadoUUID);
+                        String nombreEstado = rs.getString("estado_nombre");
+                        if (nombreEstado != null) {
+                            estado.setNombre(nombreEstado);
+                        }
+                        entity.setEstado(estado);
+                    } else {
+                        entity.setEstado(null);
+                    }
 
-                    // i) Agregar esta entidad a la lista
                     listaReservas.add(entity);
                 }
             }
         } catch (SQLException exception) {
-            var mensajeTecnico = "Se presentó una SQLException intentando listar reservas por cliente";
-            var mensajeUsuario = "No se pudo obtener las reservas en este momento.";
+            var mensajeTecnico  = "Se presentó una SQLException intentando listar reservas por cliente";
+            var mensajeUsuario  = "No se pudo obtener las reservas en este momento.";
             throw DataBackEndException.reportar(mensajeUsuario, mensajeTecnico, exception);
         } catch (Exception exception) {
             var mensajeTecnico = "Excepción NO CONTROLADA al listar reservas por cliente";

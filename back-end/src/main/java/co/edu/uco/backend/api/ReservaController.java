@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -60,10 +61,13 @@ public class ReservaController {
         return new ResponseEntity<>(reservaDto, HttpStatus.OK);
     }
 
+    /**
+     * Cambiamos aquí el tipo de retorno a List<Map<String,Object>>
+     * para que devuelva solamente los 8 campos solicitados.
+     */
     @GetMapping
-    public ResponseEntity<List<ReservaDTO>> listar(
+    public ResponseEntity<List<Map<String, Object>>> listar(
             @PathVariable UUID clienteId) throws BackEndException {
-        // Usamos un DTO vacío como filtro por defecto
         var lista = reservaFacade.listarReservasPorCliente(clienteId, new ReservaDTO());
         return new ResponseEntity<>(lista, HttpStatus.OK);
     }

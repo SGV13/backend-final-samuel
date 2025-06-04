@@ -10,9 +10,11 @@ import co.edu.uco.backend.crosscutting.exceptions.BusinessLogicBackEndException;
 import co.edu.uco.backend.data.dao.factory.DAOFactory;
 import co.edu.uco.backend.data.dao.factory.Factory;
 import co.edu.uco.backend.dto.ReservaDTO;
+import co.edu.uco.backend.entity.CanchaEntity;
+import co.edu.uco.backend.entity.ClienteEntity;
+import co.edu.uco.backend.entity.EstadoReservaEntity;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class ReservaFacadeImpl implements ReservaFacade {
 
@@ -46,18 +48,53 @@ public class ReservaFacadeImpl implements ReservaFacade {
     }
 
     @Override
-    public List<ReservaDTO> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException {
+    public List<Map<String,Object>> listarReservasPorCliente(UUID clienteId, ReservaDTO filtro) throws BackEndException {
         daoFactory.abrirConexion();
         try {
-
+            // 1) Convertir el filtro DTO a domain (para pasar a la BL)
             ReservaDomain filtroDomain = ReservaDTOAssembler.getInstance().toDomain(filtro);
-            List<ReservaDomain> dominios = reservaBusinessLogic.listarReservasPorCliente(clienteId,filtroDomain);
-            return ReservaDTOAssembler.getInstance().toDTOs(dominios);
+
+            // 2) Invocar al business logic para que traiga la lista de dominios
+            List<ReservaDomain> dominios = reservaBusinessLogic.listarReservasPorCliente(clienteId, filtroDomain);
+
+            // 3) Construir salida “ligera”: un Map<String,Object> por cada reserva
+            List<Map<String, Object>> salida = new ArrayList<>();
+
+            for (ReservaDomain dom : dominios) {
+                Map<String, Object> fila = new HashMap<>();
+
+                // a) Campos básicos que vienen en-domain:
+                fila.put("codigoreserva", dom.getId());
+                fila.put("fechaReserva", dom.getFechaReserva());
+                fila.put("fechaUsoCancha", dom.getFechaUsoCancha());
+                fila.put("horaInicio", dom.getHoraInicio());
+                fila.put("horaFin", dom.getHoraFin());
+
+                // b) Inyectar “nombreCliente” mediante DAO
+                UUID clienteUUID = dom.getCliente().getId();
+                ClienteEntity clienteEntity = daoFactory.getClienteDAO().consultarPorId(clienteUUID);
+                fila.put("nombreCliente", clienteEntity.getNombre());
+
+                // c) Inyectar “nombreCancha” mediante DAO
+                UUID canchaUUID = dom.getCancha().getId();
+                CanchaEntity canchaEntity = daoFactory.getCanchaDAO().consultarPorId(canchaUUID);
+                fila.put("nombreCancha", canchaEntity.getNombreCancha());
+
+                // d) Inyectar “nombreEstado” mediante DAO
+                UUID estadoUUID = dom.getEstado().getId();
+                EstadoReservaEntity estadoEntity = daoFactory.getEstadoReservaDAO().consultarPorId(estadoUUID);
+                fila.put("nombreEstado", estadoEntity.getNombre());
+
+                salida.add(fila);
+            }
+
+            return salida;
+
         } catch (BackEndException ex) {
             throw ex;
         } catch (Exception ex) {
-            var mensajeUsuario = "Se ha presentado un problema inesperado al consultar todos los clientes";
-            var mensajeTecnico = "Excepción inesperada listando todas los clientes";
+            var mensajeUsuario  = "Se ha presentado un problema inesperado al listar reservas por cliente";
+            var mensajeTecnico  = "Excepción inesperada listando reservas por cliente";
             throw BusinessLogicBackEndException.reportar(mensajeUsuario, mensajeTecnico, ex);
         } finally {
             daoFactory.cerrarConexion();

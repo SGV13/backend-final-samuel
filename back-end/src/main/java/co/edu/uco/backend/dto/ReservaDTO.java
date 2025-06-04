@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.UUID;
 
-@JsonFilter("reservaFilter")
 public final class ReservaDTO {
 
     private UUID id;
